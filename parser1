@@ -10,45 +10,41 @@ import ast.*;
  *  for the source program<br>
  *  Following is the Grammar we are using:<br>
  *  <pre>
- *  PROGRAM -> 'program' BLOCK ==> program
+ *  PROGRAM -> �program� BLOCK ==> program
  *  
- *  BLOCK -> '{' D* S* '}'  ==> block
+ *  BLOCK -> �{� D* S* �}�  ==> block
  *  
  *  D -> TYPE NAME                    ==> decl
  *    -> TYPE NAME FUNHEAD BLOCK      ==> functionDecl
  *  
- *  TYPE  ->  'int'
- *        ->  'boolean'
- *        ->  'void'
- *        ->  'float'
+ *  TYPE  ->  �int�
+ *        ->  �boolean�
  *
  *  FUNHEAD  -> '(' (D list ',')? ')'  ==> formals<br>
  *
- *  S -> 'if' E 'then' BLOCK 'else' BLOCK  ==> if
- *    -> 'while' E BLOCK               ==> while
- *    -> 'return' E                    ==> return
+ *  S -> �if� E �then� BLOCK �else� BLOCK  ==> if
+ *    -> �while� E BLOCK               ==> while
+ *    -> �return� E                    ==> return
  *    -> BLOCK
- *    -> NAME '=' E                    ==> assign
- *    -> NAME '(' (E list ',')? ')'    ==> call <br>
+ *    -> NAME �=� E                    ==> assign<br>
  *  
  *  E -> SE
- *    -> SE '==' SE   ==> =
- *    -> SE '!=' SE   ==> !=
- *    -> SE '<'  SE   ==> <
- *    -> SE '<=' SE   ==> <=
- *    -> SE '>'  SE   ==> >
- * 
+ *    -> SE �==� SE   ==> =
+ *    -> SE �!=� SE   ==> !=
+ *    -> SE �<�  SE   ==> <
+ *    -> SE �<=� SE   ==> <=
+ *  
  *  SE  ->  T
- *      ->  SE '+' T  ==> +
- *      ->  SE '-' T  ==> -
- *      ->  SE '|' T  ==> or
+ *      ->  SE �+� T  ==> +
+ *      ->  SE �-� T  ==> -
+ *      ->  SE �|� T  ==> or
  *  
  *  T  -> F
- *     -> T '*' F  ==> *
- *     -> T '/' F  ==> /
- *     -> T '&' F  ==> and
+ *     -> T �*� F  ==> *
+ *     -> T �/� F  ==> /
+ *     -> T �&� F  ==> and
  *  
- *  F  -> '(' E ')'
+ *  F  -> �(� E �)�
  *     -> NAME
  *     -> <int>
  *     -> NAME '(' (E list ',')? ')' ==> call<br>
@@ -60,8 +56,8 @@ public class Parser {
     private Token currentToken;
     private Lexer lex;
     private EnumSet<Tokens> relationalOps = 
-    	EnumSet.of(Tokens.Equal,Tokens.NotEqual,Tokens.Less,Tokens.LessEqual,
-            Tokens.Greater);
+    	EnumSet.of(Tokens.Equal,Tokens.NotEqual,Tokens.Less,Tokens.LessEqual, 
+            Tokens.GreaterThan);
     private EnumSet<Tokens> addingOps = 
     	EnumSet.of(Tokens.Plus,Tokens.Minus,Tokens.Or);    
     private EnumSet<Tokens> multiplyingOps = 
@@ -79,7 +75,7 @@ public class Parser {
          catch (Exception e) {
             System.out.println("********exception*******"+e.toString());
             throw e;
-        };
+         };
     }
     
     public Lexer getLex() { return lex; }
@@ -161,26 +157,27 @@ public class Parser {
 /** <pre>
  *  type  ->  'int'
  *  type  ->  'bool'
- *  type  ->  'float'
- *  type  ->  'void'
  *  </pre>
  *  @return either the intType or boolType tree
  *  @exception SyntaxError - thrown for any syntax error
 */
     public AST rType() throws SyntaxError {
-        AST t;
+          AST t = null;
         if (isNextTok(Tokens.Int)) {
             t = new IntTypeTree();
             scan();
-        } else if(isNextTok(Tokens.BOOLean)) {
+        } 
+        else if (isNextTok(Tokens.BOOLean)){
             expect(Tokens.BOOLean);
             t = new BoolTypeTree();
-        } else if (isNextTok(Tokens.Void)){
+        }
+        else if (isNextTok(Tokens.Float)){
+            expect(Tokens.Float);
+            t = new FloatTypeTree();     
+        }
+        else if (isNextTok(Tokens.Void)){
             expect(Tokens.Void);
             t = new VoidTypeTree();
-        } else {
-            expect(Tokens.Float);
-            t = new FloatTypeTree();
         }
         return t;
     }
@@ -214,10 +211,8 @@ public class Parser {
  *      S -> 'if' e 'then' block 'else' block  ==> if
  *        -> 'while' e block  ==> while
  *        -> 'return' e  ==> return
- *        -> 'return' ';'  ==> return
  *        -> block
  *        -> name '=' e  ==> assign
- *        -> name '(' (e list ',')? ')'  ==> call       
  *  </pre>
  *  @return the tree corresponding to the statement found
  *  @exception SyntaxError - thrown for any syntax error
@@ -241,28 +236,34 @@ public class Parser {
             t.addKid(rBlock());
             return t;
         }
-        if (isNextTok(Tokens.Return)) {
+        if (isNextTok(Tokens.Return)) { 
             scan();
-            if(isNextTok(Tokens.Semicolon)){
-                t = new ReturnTree();
-                scan();
+             if(isNextTok(Tokens.Semicolon))
+             {    
+                 t = new ReturnTree();
+                 scan ();
                 return t;
-            }
+             }
             t = new ReturnTree();
             t.addKid(rExpr());
+             
             return t;
         }
+        
         if (isNextTok(Tokens.LeftBrace)) {
             return rBlock();
         }
+        
         t = rName();
-        if (isNextTok(Tokens.Assign)){
-            t = (new AssignTree()).addKid(t);
-            expect(Tokens.Assign);
-            t.addKid(rExpr());
-            return t;
+        if(isNextTok(Tokens.Assign))
+        {
+        t = (new AssignTree()).addKid(t);
+        expect(Tokens.Assign);
+        t.addKid(rExpr());
+        return t;      
         }
-        scan();     // -> name '(' (e list ',')? ) ==> call
+        scan();
+        
         t = (new CallTree()).addKid(t);    
         if (!isNextTok(Tokens.RightParen)) {
             do {
@@ -277,6 +278,9 @@ public class Parser {
         expect(Tokens.RightParen);
         }
         return t;
+                
+             
+        
         
     }
 
@@ -286,7 +290,6 @@ public class Parser {
  *        -> se '!=' se  ==> !=
  *        -> se '<'  se  ==> <
  *        -> se '<=' se  ==> <=
- *        -> se '>'  se  ==> >
  *  </pre>
  *  @return the tree corresponding to the expression
  *  @exception SyntaxError - thrown for any syntax error
@@ -453,9 +456,8 @@ public class Parser {
     private void scan() {
         currentToken = lex.nextToken();
         if (currentToken != null) {
-            //currentToken.print();   // debug printout
+            currentToken.print();   // debug printout
         }
-        
         return;
     }
 }
